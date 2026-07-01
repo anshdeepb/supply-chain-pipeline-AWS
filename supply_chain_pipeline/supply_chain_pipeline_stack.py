@@ -5,6 +5,10 @@ from aws_cdk import aws_s3_deployment as s3_deploy
 from aws_cdk import aws_glue as glue
 from aws_cdk import aws_iam as iam
 
+from aws_cdk import aws_lambda as _lambda
+from aws_cdk import aws_s3_notifications as s3n
+from aws_cdk import Duration
+
 from constructs import Construct
 
 class SupplyChainPipelineStack(Stack):
@@ -78,4 +82,30 @@ class SupplyChainPipelineStack(Stack):
                               timeout=10,
                               max_capacity=1
                               )
+        
+        # Lambda Trigger
+
+        trigger_lambda = _lambda.Function(self, "TriggerLambda",
+                                          runtime=_lambda.Runtime.PYTHON_3_9,
+                                          handler="handler.lambda_handler",
+                                          code=_lambda.Code.from_asset("src/lambda_trigger/"),
+                                          timeout=Duration.seconds(30)
+                                          )
+        
+        trigger_lambda.add_to_role_policy(
+            iam.PolicyStatement(
+                actions=["glue:StartJobRun"],
+                resources=[
+                    self.format_arn(
+                    service="glue",
+                    resource="job",
+                    resource_name=etl_job.name
+                )]
+            )
+        )
+
+        bronze.add_event_notification(
+            s3.EventType.OBJECT_CREATED,
+            s3n.LambdaDestination(trigger_lambda)
+        )
             
