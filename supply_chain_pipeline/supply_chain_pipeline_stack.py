@@ -10,6 +10,8 @@ from aws_cdk import aws_s3_notifications as s3n
 from aws_cdk import aws_ecr_assets as ecr_assets
 from aws_cdk import Duration
 
+from aws_cdk import aws_apigateway as apigateway
+
 from constructs import Construct
 
 class SupplyChainPipelineStack(Stack):
@@ -133,3 +135,26 @@ class SupplyChainPipelineStack(Stack):
             s3n.LambdaDestination(training_lambda)
         )
             
+        # Inference lambda
+
+        inference_lambda = _lambda.DockerImageFunction(self, "InferenceLambda",
+                                                       code=_lambda.DockerImageCode.from_image_asset(
+                                                           "src/lambda_inference_container",
+                                                           platform=ecr_assets.Platform.LINUX_AMD64
+                                                           ),
+                                                           timeout=Duration.seconds(30),
+                                                            memory_size=512,
+                                                            environment={
+                                                                "MODEL_BUCKET": model.bucket_name
+                                                                }
+                                                        )
+
+        model.grant_read(inference_lambda)
+
+        api = apigateway.LambdaRestApi(self, "PredictionApi",
+                                       handler=inference_lambda,
+                                       proxy=False
+                                       )
+
+        predict_resource = api.root.add_resource("predict")
+        predict_resource.add_method("POST")
