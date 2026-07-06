@@ -123,7 +123,7 @@ supply_chain_pipeline/
 ### 1. Clone and install dependencies
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/anshdeepb/supply-chain-pipeline.git
 cd supply_chain_pipeline
 python -m venv .venv
 source .venv/bin/activate      # Windows: .venv\Scripts\activate
@@ -163,19 +163,13 @@ Download the CSV from the [Kaggle link above](#overview) and note its local path
 
 ### 7. Trigger the pipeline
 
-```bash
-aws s3 cp /path/to/your/dataset.csv s3://<bronze-bucket-name>/warehouse_data.csv
-```
+Upload the dataset into the bronze layer
 
 This alone kicks off the entire pipeline automatically: Glue cleans the data, the training Lambda fires on the new Silver object, and a model is trained and saved — no further manual steps required.
 
 ### 8. Verify
 
-```bash
-aws glue get-job-runs --job-name bronze-to-silver-etl
-aws s3 ls s3://<silver-bucket-name>/
-aws s3 ls s3://<model-bucket-name>/model/
-```
+Check the silver bucket, which should now contain the new cleansed and transformed data file.
 
 ## Usage
 
@@ -188,36 +182,6 @@ python scripts/predict.py
 You'll be prompted for warehouse attributes (capacity, worker count, distance from hub, etc.) and the script returns a predicted `product_wg_ton` value via the deployed API Gateway endpoint.
 
 **Important — send raw attributes, not pre-encoded values.** The inference Lambda replicates the exact training-time encoding pipeline (one-hot encoding via `pd.get_dummies`, followed by `reindex` against the saved `feature_columns` list) so the client can send human-readable category strings (e.g. `"zone": "North"`, `"WH_capacity_size": "Mid"`) rather than manually constructing one-hot columns.
-
-Or call the API directly:
-
-```bash
-curl -X POST https://<api-gateway-url>/prod/predict \
-  -H "Content-Type: application/json" \
-  -d '{
-    "num_refill_req_l3m": 4,
-    "transport_issue_l1y": 1,
-    "Competitor_in_mkt": 3,
-    "retail_shop_num": 4859,
-    "distributor_num": 42,
-    "flood_impacted": 0,
-    "flood_proof": 1,
-    "electric_supply": 1,
-    "dist_from_hub": 164,
-    "workers_num": 28,
-    "wh_est_year": 2015,
-    "storage_issue_reported_l3m": 2,
-    "temp_reg_mach": 1,
-    "wh_breakdown_l3m": 0,
-    "govt_check_l3m": 4,
-    "Location_type": "Urban",
-    "WH_capacity_size": "Mid",
-    "zone": "North",
-    "WH_regional_zone": "Zone 3",
-    "wh_owner_type": "Rented",
-    "approved_wh_govt_certificate": "B+"
-  }'
-```
 
 Returns:
 ```json
