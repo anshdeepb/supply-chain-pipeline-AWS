@@ -93,7 +93,7 @@ supply_chain_pipeline/
 ### 1. Clone and install dependencies
 
 ```bash
-git clone https://github.com/anshdeepb/supply-chain-pipeline.git
+git clone https://github.com/anshdeepb/supply-chain-pipeline-AWS.git
 cd supply_chain_pipeline
 python -m venv .venv
 source .venv/bin/activate      # Windows: .venv\Scripts\activate
